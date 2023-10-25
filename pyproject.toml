@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "sjo-scraper"
+version = "0.1.0"
+description = "SJO language course descriptions scraper"
+authors = ["mgarbowski <mikolaj.garbowski@gmail.com>"]
+readme = "README.md"
+packages = [{include = "sjo_scraper"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+selenium = "^4.14.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
