@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from pprint import pprint
+import csv
+from dataclasses import dataclass, asdict
 
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -8,6 +8,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.select import Select
 
 SJO_URL = "https://ssl.sjo.pw.edu.pl/index.php/oferta"
+OUT_FILE = "courses.csv"
 
 
 @dataclass
@@ -74,14 +75,23 @@ def scrape_course_list(driver: WebDriver, page_url: str) -> list[Course]:
     return all_courses
 
 
+def save_to_csv(filename: str, courses: list[Course]):
+    with open(filename, mode="w", encoding="utf-8") as out_file:
+        fieldnames = list(asdict(courses[0]).keys())
+        writer = csv.DictWriter(out_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for course in courses:
+            writer.writerow(asdict(course))
+
+
 def main():
     driver = webdriver.Chrome()
     all_courses = scrape_course_list(driver, SJO_URL)
-
     print(f"Collected {len(all_courses)} in total")
-    pprint(all_courses)
-
     driver.quit()
+
+    print(f"Saving result to {OUT_FILE}")
+    save_to_csv(OUT_FILE, all_courses)
 
 
 if __name__ == '__main__':
