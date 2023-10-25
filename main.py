@@ -1,5 +1,6 @@
 import csv
-from dataclasses import dataclass, asdict
+import json
+from dataclasses import dataclass, asdict, fields
 
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -8,7 +9,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.select import Select
 
 SJO_URL = "https://ssl.sjo.pw.edu.pl/index.php/oferta"
-OUT_FILE = "courses.csv"
+OUT_CSV = "courses.csv"
+OUT_JSON = "courses.json"
 
 
 @dataclass
@@ -21,6 +23,12 @@ class Course:
     title: str
     teacher: str
     time: str
+
+
+def dataclass_from_dict(class_name, data_dict: dict):
+    field_set = {f.name for f in fields(class_name) if f.init}
+    filtered_args = {k: v for k, v in data_dict.items() if k in field_set}
+    return class_name(**filtered_args)
 
 
 def process_row(tr_element: WebElement) -> Course:
@@ -84,14 +92,38 @@ def save_to_csv(filename: str, courses: list[Course]):
             writer.writerow(asdict(course))
 
 
+def read_from_csv(filename: str) -> list[Course]:
+    with open(filename, mode="r", encoding="utf-8") as in_file:
+        reader = csv.DictReader(in_file)
+        return [dataclass_from_dict(Course, row_dict) for row_dict in reader]
+
+
+def save_to_json(filename: str, courses):
+    with open(filename, mode="w", encoding="utf-8") as out_file:
+        dict_courses = [asdict(course) for course in courses]
+        json.dump(dict_courses, out_file)
+
+
+def read_from_json(filename: str) -> list[Course]:
+    with open(filename, mode="r", encoding="utf-8") as in_file:
+        course_dicts = json.load(in_file)
+        return [dataclass_from_dict(Course, cd) for cd in course_dicts]
+
+
 def main():
     driver = webdriver.Chrome()
+    print(f"Scraping {SJO_URL} for language course data")
     all_courses = scrape_course_list(driver, SJO_URL)
-    print(f"Collected {len(all_courses)} in total")
+    print(f"Collected {len(all_courses)} courses in total")
     driver.quit()
 
-    print(f"Saving result to {OUT_FILE}")
-    save_to_csv(OUT_FILE, all_courses)
+    print(f"Saving result to {OUT_CSV}")
+    save_to_csv(OUT_CSV, all_courses)
+    print(f"Saved result to {OUT_CSV}")
+
+    print(f"Saving result to {OUT_JSON}")
+    save_to_json(OUT_JSON, all_courses)
+    print(f"Saved result to {OUT_JSON}")
 
 
 if __name__ == '__main__':
