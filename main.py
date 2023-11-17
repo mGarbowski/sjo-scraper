@@ -17,6 +17,7 @@ OUT_JSON = "courses.json"
 class Course:
     usos_code: str
     symbol: str
+    language: str
     level: str
     module: str
     type: str
@@ -31,10 +32,11 @@ def dataclass_from_dict(class_name, data_dict: dict):
     return class_name(**filtered_args)
 
 
-def process_row(tr_element: WebElement) -> Course:
+def process_row(tr_element: WebElement, language_name: str) -> Course:
     cells = tr_element.find_elements(By.TAG_NAME, "td")
     values = [cell.text for cell in cells]
     return Course(
+        language=language_name,
         usos_code=values[0],
         symbol=values[1],
         level=values[2],
@@ -57,6 +59,7 @@ def scrape_course_category(driver: WebDriver, select_tag_id: str, select_idx: in
         select_element = driver.find_elements(By.ID, select_tag_id)[select_idx]
         select = Select(select_element)
         select.select_by_index(idx)
+        language_name = extract_name(select, idx)
 
         button = driver.find_element(By.NAME, btn_name)
         button.click()
@@ -65,7 +68,7 @@ def scrape_course_category(driver: WebDriver, select_tag_id: str, select_idx: in
             *driver.find_elements(By.CLASS_NAME, "even"),
             *driver.find_elements(By.CLASS_NAME, "odd"),
         ]
-        courses.extend([process_row(row) for row in table_rows])
+        courses.extend([process_row(row, language_name) for row in table_rows])
 
         driver.back()
 
@@ -81,6 +84,11 @@ def scrape_course_list(driver: WebDriver, page_url: str) -> list[Course]:
     ]
 
     return all_courses
+
+
+def extract_name(select: Select, idx: int) -> str:
+    name = select.options[idx].accessible_name
+    return name.split()[0]
 
 
 def save_to_csv(filename: str, courses: list[Course]):
